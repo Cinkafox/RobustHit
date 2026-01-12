@@ -28,3 +28,20 @@ public sealed class SessionStateChangeMessage : NetMessage
         buffer.Write(segment);
     }
 }
+
+public sealed class SessionHandlerInvokeMessage : NetMessage
+{
+    public override MsgGroups MsgGroup => MsgGroups.Command;
+
+    public int HandlerId { get; set; }
+    
+    public override void ReadFromBuffer(NetIncomingMessage buffer, IRobustSerializer serializer)
+    {
+        HandlerId = buffer.ReadVariableInt32();
+    }
+
+    public override void WriteToBuffer(NetOutgoingMessage buffer, IRobustSerializer serializer)
+    {
+        buffer.WriteVariableInt32(HandlerId);
+    }
+}

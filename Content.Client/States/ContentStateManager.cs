@@ -5,15 +5,17 @@ using Robust.Client.State;
 using Robust.Client.UserInterface;
 using Robust.Shared.Player;
 using Robust.Shared.Reflection;
+using Robust.Shared.Utility;
 
 namespace Content.Client.States;
 
 [RegisterDependency(typeof(IContentStateManager))]
-public sealed class ContentStateManager : ContentState.SharedContentStateManager
+public sealed class ContentStateManager : ContentState.SharedContentStateManager, INetworkStateMessageInvoker
 {
     [Dependency] private readonly IReflectionManager _reflectionManager = default!;
     [Dependency] private readonly IStateManager _stateManager = default!;
     [Dependency] private readonly IUserInterfaceManager _uiManager = default!;
+    [Dependency] private readonly IPlayerManager _playerManager = default!;
     
     private ContentState _currentState = new VoidGameState();
     private bool _firstActive = false;
@@ -21,11 +23,15 @@ public sealed class ContentStateManager : ContentState.SharedContentStateManager
     public override void Initialize(IDependencyCollection collection)
     {
         NetManager.RegisterNetMessage<SessionStateChangeMessage>(OnSessionStateChange);
+        NetManager.RegisterNetMessage<SessionHandlerInvokeMessage>();
     }
 
     public override void SetState<T>(ICommonSession session)
     {
-        var state = CreateState<T>(ContentStateSender.Client);
+        if (!session.Equals(_playerManager.LocalSession))
+            throw new InvalidOperationException();
+        
+        var state = CreateState<T>(ContentStateSender.Client, session);
         SetState(state);
     }
 
@@ -41,6 +47,8 @@ public sealed class ContentStateManager : ContentState.SharedContentStateManager
 
     private void SetState(ContentState state)
     {
+        EnsureStateHandlers(state);
+        
         _currentState = state;
         if (state.UserInterface is null) 
             return;
@@ -63,6 +71,26 @@ public sealed class ContentStateManager : ContentState.SharedContentStateManager
         {
             stateUserInterface.OnStateChanged(state);
         }
+    }
+
+    private void EnsureStateHandlers(ContentState state)
+    {
+        foreach (var field in state.GetType().GetAllFields())
+        {
+            
+            if(field.GetValue(state) is not ServerStateMessageHandler handler)
+                return;
+            
+            handler.Invoker = new WeakReference<INetworkStateMessageInvoker>(this);
+        }
+    }
+
+    public void Invoke(int id)
+    {
+        NetManager.ClientSendMessage(new SessionHandlerInvokeMessage()
+        {
+            HandlerId = id
+        });
     }
 }
 

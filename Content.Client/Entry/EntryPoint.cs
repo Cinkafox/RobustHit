@@ -1,8 +1,78 @@
-﻿using Robust.Shared.ContentPack;
+﻿using Content.Client.Connection;
+using Content.Shared.Input;
+using Robust.Client;
+using Robust.Client.Input;
+using Robust.Client.State;
+using Robust.Client.UserInterface;
+using Robust.Shared.Configuration;
+using Robust.Shared.ContentPack;
 
 namespace Content.Client.Entry;
 
 public sealed class EntryPoint : GameClient
 {
+    [Dependency] private readonly IUserInterfaceManager _userInterfaceManager = default!;
+    [Dependency] private readonly IStateManager _stateManager = default!;
+    [Dependency] private readonly IInputManager _inputManager = default!;
+    [Dependency] private readonly IGameController _gameController = default!;
+    [Dependency] private readonly IBaseClient _baseClient = default!;
+    [Dependency] private readonly IConfigurationManager _configManager = default!;
     
+    public bool IsSingleplayer = true;
+    
+    public override void PreInit()
+    {
+        IoCManager.BuildGraph();
+        IoCManager.InjectDependencies(this);
+        
+        //AUTOSCALING default Setup!
+        _configManager.SetCVar("interface.resolutionAutoScaleUpperCutoffX", 1080);
+        _configManager.SetCVar("interface.resolutionAutoScaleUpperCutoffY", 720);
+        _configManager.SetCVar("interface.resolutionAutoScaleLowerCutoffX", 520);
+        _configManager.SetCVar("interface.resolutionAutoScaleLowerCutoffY", 240);
+        _configManager.SetCVar("interface.resolutionAutoScaleMinimum", 0.5f);
+    }
+    
+    public override void PostInit()
+    { 
+        _userInterfaceManager.SetDefaultTheme("DefaultTheme"); 
+       
+        ContentContexts.SetupContexts(_inputManager.Contexts);
+        _userInterfaceManager.MainViewport.Visible = false;
+       
+        _baseClient.RunLevelChanged += (_, args) =>
+        {
+            if (args.NewLevel == ClientRunLevel.Initialize)
+            {
+                SwitchState(args.OldLevel is ClientRunLevel.Connected or ClientRunLevel.InGame);
+            }
+        };
+       
+        SwitchState();
+    }
+    
+    private void SwitchState(bool disconnected = false)
+    {
+        _stateManager.RequestStateChange<ConnectingState>();
+        var state = (ConnectingState)_stateManager.CurrentState;
+        
+        if(disconnected)
+        {
+            state.Message("Disconnected..");
+            return;
+        }
+
+        if (_gameController.LaunchState.FromLauncher) 
+            return;
+
+        if (IsSingleplayer)
+        {
+            state.Message("Start singleplayer..");
+            _baseClient.StartSinglePlayer();
+        }
+        else
+        {
+            state.ConnectToLocal();
+        }
+    }
 }
