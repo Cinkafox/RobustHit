@@ -9,7 +9,7 @@ using Robust.Shared.Utility;
 
 namespace Content.Client.States;
 
-[RegisterDependency(typeof(IContentStateManager))]
+[RegisterDependency(typeof(IContentStateManager), typeof(INetworkStateMessageInvoker))]
 public sealed class ContentStateManager : ContentState.SharedContentStateManager, INetworkStateMessageInvoker
 {
     [Dependency] private readonly IReflectionManager _reflectionManager = default!;
@@ -47,13 +47,10 @@ public sealed class ContentStateManager : ContentState.SharedContentStateManager
 
     private void SetState(ContentState state)
     {
-        EnsureStateHandlers(state);
-        
         _currentState = state;
         if (state.UserInterface is null) 
             return;
         
-        StateFactory._state = state;
         StateFactory._screenType = _reflectionManager.GetType(state.UserInterface);
 
         if (_firstActive)
@@ -69,19 +66,8 @@ public sealed class ContentStateManager : ContentState.SharedContentStateManager
 
         if (_uiManager.ActiveScreen is IStateUserInterface stateUserInterface)
         {
-            stateUserInterface.OnStateChanged(state);
-        }
-    }
-
-    private void EnsureStateHandlers(ContentState state)
-    {
-        foreach (var field in state.GetType().GetAllFields())
-        {
-            
-            if(field.GetValue(state) is not ServerStateMessageHandler handler)
-                return;
-            
-            handler.Invoker = new WeakReference<INetworkStateMessageInvoker>(this);
+            stateUserInterface.CurrentState = state;
+            stateUserInterface.OnStateChanged();
         }
     }
 
@@ -96,27 +82,22 @@ public sealed class ContentStateManager : ContentState.SharedContentStateManager
 
 public interface IStateUserInterface
 {
-    public void OnStateChanged(ContentState state);
+    public ContentState CurrentState { get; set; }
+    public virtual void OnStateChanged(){}
 }
 
 public static class StateFactory
 {
-    public static ContentState _state;
     public static Type _screenType;
 }
 
 [Virtual]
 public class ClientContentState1 : State
 {
-    
-    private ContentState _state;
-    private Type _screenType;
-    protected override Type LinkedScreenType => _screenType;
+    protected override Type LinkedScreenType => StateFactory._screenType;
 
     protected override void Startup()
     {
-        _state = StateFactory._state;
-        _screenType = StateFactory._screenType;
     }
 
     protected override void Shutdown()

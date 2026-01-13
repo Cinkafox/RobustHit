@@ -45,6 +45,7 @@ public sealed class DependencyRegisterFactory
         dependencyCollection.InjectDependencies(this);
         
         var conclusion = new DiscoverDependenciesConclusion();
+        var values = new List<object>();
         
         foreach (var dependencyType in _reflectionManager.FindTypesWithAttribute<RegisterDependencyAttribute>())
         {
@@ -53,17 +54,36 @@ public sealed class DependencyRegisterFactory
 
             var attr = (RegisterDependencyAttribute)
                Attribute.GetCustomAttribute(dependencyType, typeof(RegisterDependencyAttribute))!;
+            
+            var value = _dynamicTypeFactory.CreateInstance(dependencyType, inject: false);
+            values.Add(value);
+            
+            if (attr.InterfaceTypes.Length == 0)
+            {
+                dependencyCollection.Register(dependencyType, factory: () => value);
+                conclusion.Dependencies.Add(dependencyType);
+                continue;
+            }
 
-            var interfaceType = attr.InterfaceType ?? dependencyType;
-            
-            if (!dependencyType.IsAssignableTo(interfaceType))
-                throw new Exception($"Type '{dependencyType.FullName}' is not assignable from '{interfaceType.FullName}'");
-            
-            var value = _dynamicTypeFactory.CreateInstance(dependencyType);
-            
-            dependencyCollection.Register(interfaceType, dependencyType, factory: () => value);
-            
-            conclusion.Dependencies.Add(interfaceType);
+            var firstInterface = true;
+
+            foreach (var interfaceType in attr.InterfaceTypes)
+            {
+                if (!dependencyType.IsAssignableTo(interfaceType))
+                    throw new Exception($"Type '{dependencyType.FullName}' is not assignable from '{interfaceType.FullName}'");
+                
+                dependencyCollection.Register(interfaceType, dependencyType, factory: () => value);
+                if(firstInterface) 
+                    conclusion.Dependencies.Add(interfaceType);
+                firstInterface = false;
+            }
+        }
+        
+        dependencyCollection.BuildGraph();
+
+        foreach (var value in values)
+        {
+            dependencyCollection.InjectDependencies(value);
         }
         
         return conclusion;

@@ -2,7 +2,11 @@
 
 
 [AttributeUsage(AttributeTargets.Class)]
-public sealed class RegisterDependencyAttribute(Type? interfaceType = null) : Attribute
+public sealed class RegisterDependencyAttribute(params Type[] interfaceType) : Attribute
 {
-    public Type? InterfaceType { get; } = interfaceType;
+    public RegisterDependencyAttribute() : this([])
+    {
+    }
+
+    public readonly Type[] InterfaceTypes = interfaceType;
 }

@@ -30,7 +30,8 @@ public sealed class ContentStateManager : ContentState.SharedContentStateManager
                 continue;
 
             var id = _handlerContainer.RegisterMessageHandler(handler.OnInvoke, state.Session.UserId);
-            var newHandler = new ServerStateMessageHandler(id);
+            var newHandler = new ServerStateMessageHandler();
+            newHandler.MessageId = id;
             field.SetValue(state, newHandler);
         }
     }
@@ -39,9 +40,10 @@ public sealed class ContentStateManager : ContentState.SharedContentStateManager
     {
         _handlerContainer.ClearHandlers(session.UserId);
         var state = CreateState<T>(ContentStateSender.Server, session);
-        FilterStateHandler(state);
         
         PlayerManager.GetContentPlayerData(session).CurrentState = state;
+        
+        FilterStateHandler(state);
         
         var stateMessage = new SessionStateChangeMessage();
         stateMessage.ContentState = state;

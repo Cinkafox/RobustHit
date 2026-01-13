@@ -38,7 +38,7 @@ public abstract partial class ContentState
 
 public sealed partial class LobbyState : ContentState
 {
-    public override TypeReference? UserInterface { get; }
+    public override TypeReference? UserInterface => "Content.Client.Lobby.LobbyUI";
     
     [DataField] public string LobbyName { get; private set; } = "DefaultLobby";
     [DataField] public IStateMessageHandler SayHello;
@@ -67,21 +67,11 @@ public interface INetworkStateMessageInvoker
 [DataDefinition]
 public sealed partial class ServerStateMessageHandler : IStateMessageHandler
 {
-    public ServerStateMessageHandler(int messageId)
-    {
-        MessageId = messageId;
-    }
-
-    [DataField] public int MessageId { get; private set; }
-    
-    public WeakReference<INetworkStateMessageInvoker>? Invoker { get; set; }
+    [DataField] public int MessageId { get; set; }
     
     public void Invoke()
     {
-        if (Invoker != null && Invoker.TryGetTarget(out var invoker))
-        {
-            invoker.Invoke(MessageId);
-        }
+        IoCManager.Resolve<INetworkStateMessageInvoker>().Invoke(MessageId);
     }
 }
 

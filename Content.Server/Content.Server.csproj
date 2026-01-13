@@ -14,11 +14,10 @@
         <PackageReference Include="NetCord" />
         <PackageReference Include="prometheus-net" />
         <PackageReference Include="Microsoft.Extensions.ObjectPool" />
+        <PackageReference Include="Linguini.Bundle" />
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\Content.Packaging\Content.Packaging.csproj" />
-        <ProjectReference Include="..\Content.Server.Database\Content.Server.Database.csproj" />
-        <ProjectReference Include="..\Content.Shared.Database\Content.Shared.Database.csproj" />
         <ProjectReference Include="..\Content.Shared\Content.Shared.csproj" />
     </ItemGroup>
     <Import Project="..\RobustToolbox\MSBuild\Robust.Properties.targets" />
