@@ -39,7 +39,15 @@ public sealed class ContentStateManager : ContentState.SharedContentStateManager
     {
         return _currentState;
     }
-    
+
+    public override void DirtyState(ContentState state)
+    {
+        if (state.GetType() != _currentState.GetType()) 
+            return;
+        _currentState = state;
+        DirtyActiveScreen();
+    }
+
     private void OnSessionStateChange(SessionStateChangeMessage message)
     {
         SetState(message.ContentState);
@@ -49,8 +57,7 @@ public sealed class ContentStateManager : ContentState.SharedContentStateManager
     {
         if (state.GetType() == _currentState.GetType())
         {
-            _currentState = state;
-            DirtyActiveScreen();
+            DirtyState(state);
             return;
         }
         

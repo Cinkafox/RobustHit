@@ -24,12 +24,6 @@ public sealed class ContentStateManager : ContentState.SharedContentStateManager
     private void OnHandlerInvoke(SessionHandlerInvokeMessage message)
     {
         _handlerContainer.InvokeMessageHandler(message.MsgChannel.UserId, message.HandlerId);
-        var state = GetCurrentState(message.MsgChannel.UserId);
-        if (IsStateDirty(state))
-        {
-            SendState(message.MsgChannel, state);
-            ResetDirty(state);
-        }
     }
 
     private void FilterStateHandler(ContentState state)
@@ -81,6 +75,12 @@ public sealed class ContentStateManager : ContentState.SharedContentStateManager
     public override ContentState GetCurrentState(NetUserId id)
     {
         return ContentPlayerManager.GetContentPlayerData(id).CurrentState;
+    }
+
+    public override void DirtyState(ContentState state)
+    {
+        SendState(state.GetSession().Channel, state);
+        ResetDirty(state);
     }
 }
 
