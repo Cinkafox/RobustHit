@@ -10,8 +10,8 @@ namespace Content.Client.Lobby;
 [GenerateTypedNameReferences]
 public sealed partial class LobbyUI : UIScreen, IStateUserInterface
 {
-    public ContentState CurrentState { get; set; }
-    public LobbyState LobbyState => CurrentState as LobbyState;
+    public ContentState CurrentState { get; set; } = default!;
+    public LobbyState LobbyState => (CurrentState as LobbyState)!;
     
     public LobbyUI()
     {
@@ -22,5 +22,10 @@ public sealed partial class LobbyUI : UIScreen, IStateUserInterface
     private void GoButtonOnOnPressed(BaseButton.ButtonEventArgs obj)
     {
         LobbyState.SayHello.Invoke();
+    }
+
+    public void OnStateChanged()
+    {
+        GoLabel.Text = LobbyState.Message;
     }
 }

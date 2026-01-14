@@ -3,7 +3,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:lobby="clr-namespace:Content.Client.Lobby">
     <BoxContainer>
-        <Label Text="GO GO!"/>
+        <Label Name="GoLabel" Text="GO GO!"/>
         <Button Name="GoButton" Text="GO"/>
     </BoxContainer>
 </lobby:LobbyUI>

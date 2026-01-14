@@ -3,9 +3,9 @@ using Content.Shared.States;
 using Robust.Client.Player;
 using Robust.Client.State;
 using Robust.Client.UserInterface;
+using Robust.Shared.Network;
 using Robust.Shared.Player;
 using Robust.Shared.Reflection;
-using Robust.Shared.Utility;
 
 namespace Content.Client.States;
 
@@ -35,7 +35,7 @@ public sealed class ContentStateManager : ContentState.SharedContentStateManager
         SetState(state);
     }
 
-    public override ContentState GetCurrentState(ICommonSession session)
+    public override ContentState GetCurrentState(NetUserId id)
     {
         return _currentState;
     }
@@ -47,11 +47,20 @@ public sealed class ContentStateManager : ContentState.SharedContentStateManager
 
     private void SetState(ContentState state)
     {
+        if (state.GetType() == _currentState.GetType())
+        {
+            _currentState = state;
+            DirtyActiveScreen();
+            return;
+        }
+        
+        Logger.Info($"SetState: {state}");
         _currentState = state;
         if (state.UserInterface is null) 
             return;
         
-        StateFactory._screenType = _reflectionManager.GetType(state.UserInterface);
+        StateFactory._screenType = _reflectionManager.GetType(state.UserInterface) ?? 
+                                   throw new InvalidOperationException();
 
         if (_firstActive)
         {
@@ -64,9 +73,14 @@ public sealed class ContentStateManager : ContentState.SharedContentStateManager
             _firstActive = true;
         }
 
+        DirtyActiveScreen();
+    }
+
+    private void DirtyActiveScreen()
+    {
         if (_uiManager.ActiveScreen is IStateUserInterface stateUserInterface)
         {
-            stateUserInterface.CurrentState = state;
+            stateUserInterface.CurrentState = _currentState;
             stateUserInterface.OnStateChanged();
         }
     }
@@ -88,7 +102,7 @@ public interface IStateUserInterface
 
 public static class StateFactory
 {
-    public static Type _screenType;
+    public static Type _screenType = default!;
 }
 
 [Virtual]

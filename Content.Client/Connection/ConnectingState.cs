@@ -66,7 +66,7 @@ public sealed class ConnectingState : State
         Message(Loc.GetString(state.ToString()));
     }
 
-    private void OnConnectFailed(object sender, NetConnectFailArgs args)
+    private void OnConnectFailed(object? sender, NetConnectFailArgs args)
     {
         if (args.RedialFlag)
         {

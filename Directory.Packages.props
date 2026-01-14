@@ -1,22 +1,6 @@
 ﻿<Project>
-    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-      <OutputPath>bin\Debug\</OutputPath>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'DebugOpt|AnyCPU' ">
-      <OutputPath>bin\DebugOpt\</OutputPath>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-      <OutputPath>bin\Release\</OutputPath>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Tools|AnyCPU' ">
-      <OutputPath>bin\Tools\</OutputPath>
-    </PropertyGroup>
     <Import Project="RobustToolbox/Directory.Packages.props" />
     <ItemGroup>
-        <PackageVersion Include="Nett" Version="0.15.0" />
-        <PackageVersion Include="JetBrains.Annotations" Version="2025.2.4" />
-        <PackageVersion Include="SixLabors.ImageSharp" Version="3.1.12" />
-        <PackageVersion Include="Pidgin" Version="3.5.1" />
-        <PackageVersion Include="Robust.Shared.AuthLib" Version="0.1.2" />
+
     </ItemGroup>
 </Project>

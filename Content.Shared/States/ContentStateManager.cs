@@ -1,5 +1,7 @@
-﻿using Content.Shared.ContentDependencies;
+﻿using System.Threading.Channels;
+using Content.Shared.ContentDependencies;
 using Content.Shared.Players;
+using Robust.Shared.Enums;
 using Robust.Shared.Network;
 using Robust.Shared.Player;
 using Robust.Shared.Serialization;
@@ -10,37 +12,55 @@ namespace Content.Shared.States;
 public abstract partial class ContentState
 {
     [ViewVariables(VVAccess.ReadOnly)] public abstract TypeReference? UserInterface { get; }
-    [ViewVariables(VVAccess.ReadOnly)] public ICommonSession Session { get; private set; }
+    [ViewVariables(VVAccess.ReadOnly), NonSerialized] private ICommonSession _session;
+    
+    [ViewVariables(VVAccess.ReadOnly), NonSerialized]
+    protected bool Dirty;
+    
+    public ICommonSession GetSession() => _session;
+    protected void MakeDirty() => Dirty = true;
     
     [DataField] public ContentStateSender Sender { get; private set; }
     
     public abstract class SharedContentStateManager : IContentStateManager, IInitializable
     {
         [Dependency] protected readonly INetManager NetManager = default!;
-        [Dependency] protected readonly IDynamicTypeFactory DynamicTypeFactory = default!;
-        [Dependency] protected readonly ContentPlayerManager PlayerManager = default!;
+        [Dependency] protected readonly ContentPlayerManager ContentPlayerManager = default!;
+        [Dependency] private readonly IDynamicTypeFactory _dynamicTypeFactory = default!;
 
         public abstract void Initialize(IDependencyCollection collection);
 
         protected T CreateState<T>(ContentStateSender sender, ICommonSession session) where T : ContentState, new()
         {
-            var rawState = DynamicTypeFactory.CreateInstance<T>();
+            var rawState = _dynamicTypeFactory.CreateInstance<T>();
             rawState.Sender = sender;
-            rawState.Session = session;
+            rawState._session = session;
             
             return rawState;
         }
 
+        protected bool IsStateDirty(ContentState state)
+        {
+            return state.Dirty;
+        }
+
+        protected void ResetDirty(ContentState state)
+        {
+            state.Dirty = false;
+        }
+        
         public abstract void SetState<T>(ICommonSession session) where T : ContentState, new();
-        public abstract ContentState GetCurrentState(ICommonSession session);
+        public abstract ContentState GetCurrentState(NetUserId id);
     }
 }
 
+[DataDefinition, Serializable, NetSerializable]
 public sealed partial class LobbyState : ContentState
 {
     public override TypeReference? UserInterface => "Content.Client.Lobby.LobbyUI";
-    
-    [DataField] public string LobbyName { get; private set; } = "DefaultLobby";
+
+    public string Message => $"Вы сделали нахрюк {NahrukCount} раз!!";
+    [DataField] public int NahrukCount = 0;
     [DataField] public IStateMessageHandler SayHello;
 
     public LobbyState()
@@ -50,7 +70,9 @@ public sealed partial class LobbyState : ContentState
 
     private void SayHelloFun()
     {
-        Logger.Debug("SayHello " + Session.Name);
+        NahrukCount++;
+        Logger.Debug(Message + GetSession().Name);
+        MakeDirty();
     }
 }
 
@@ -64,7 +86,7 @@ public interface INetworkStateMessageInvoker
     public void Invoke(int id);
 }
 
-[DataDefinition]
+[DataDefinition, Serializable, NetSerializable]
 public sealed partial class ServerStateMessageHandler : IStateMessageHandler
 {
     [DataField] public int MessageId { get; set; }

@@ -16,7 +16,7 @@ public sealed class SessionStateChangeMessage : NetMessage
         var length = buffer.ReadVariableInt32();
         using var stream = new MemoryStream(length);
         buffer.ReadAlignedMemory(stream, length);
-        serializer.Deserialize<ContentState>(stream);
+        ContentState = serializer.Deserialize<ContentState>(stream);
     }
 
     public override void WriteToBuffer(NetOutgoingMessage buffer, IRobustSerializer serializer)

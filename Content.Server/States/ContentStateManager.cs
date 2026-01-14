@@ -1,5 +1,6 @@
 ﻿using Content.Shared.ContentDependencies;
 using Content.Shared.States;
+using Robust.Shared.Enums;
 using Robust.Shared.Network;
 using Robust.Shared.Player;
 using Robust.Shared.Utility;
@@ -9,10 +10,13 @@ namespace Content.Server.States;
 [RegisterDependency(typeof(IContentStateManager))]
 public sealed class ContentStateManager : ContentState.SharedContentStateManager
 {
+    [Dependency] private readonly ISharedPlayerManager _playerManager = default!;
+    
     private readonly StateActionContainer _handlerContainer = new();
     
     public override void Initialize(IDependencyCollection collection)
     {
+        _playerManager.PlayerStatusChanged += PlayerManagerOnPlayerStatusChanged;
         NetManager.RegisterNetMessage<SessionStateChangeMessage>();
         NetManager.RegisterNetMessage<SessionHandlerInvokeMessage>(OnHandlerInvoke);
     }
@@ -20,6 +24,12 @@ public sealed class ContentStateManager : ContentState.SharedContentStateManager
     private void OnHandlerInvoke(SessionHandlerInvokeMessage message)
     {
         _handlerContainer.InvokeMessageHandler(message.MsgChannel.UserId, message.HandlerId);
+        var state = GetCurrentState(message.MsgChannel.UserId);
+        if (IsStateDirty(state))
+        {
+            SendState(message.MsgChannel, state);
+            ResetDirty(state);
+        }
     }
 
     private void FilterStateHandler(ContentState state)
@@ -29,11 +39,31 @@ public sealed class ContentStateManager : ContentState.SharedContentStateManager
             if (field.GetValue(state) is not StateMessageHandler handler)
                 continue;
 
-            var id = _handlerContainer.RegisterMessageHandler(handler.OnInvoke, state.Session.UserId);
+            var id = _handlerContainer.RegisterMessageHandler(handler.OnInvoke, state.GetSession().UserId);
             var newHandler = new ServerStateMessageHandler();
             newHandler.MessageId = id;
             field.SetValue(state, newHandler);
         }
+    }
+    
+    private void PlayerManagerOnPlayerStatusChanged(object? sender, SessionStatusEventArgs e)
+    {
+        if(e.NewStatus != SessionStatus.InGame) 
+            return;
+        
+        var state = GetCurrentState(e.Session.UserId);
+        if(state is VoidGameState)
+            return;
+        
+        SendState(e.Session.Channel, state);
+    }
+    
+    private void SendState(INetChannel channel, ContentState state)
+    {
+        var stateMessage = new SessionStateChangeMessage();
+        stateMessage.ContentState = state;
+        
+        NetManager.ServerSendMessage(stateMessage, channel);
     }
 
     public override void SetState<T>(ICommonSession session)
@@ -41,19 +71,16 @@ public sealed class ContentStateManager : ContentState.SharedContentStateManager
         _handlerContainer.ClearHandlers(session.UserId);
         var state = CreateState<T>(ContentStateSender.Server, session);
         
-        PlayerManager.GetContentPlayerData(session).CurrentState = state;
+        ContentPlayerManager.GetContentPlayerData(session.UserId).CurrentState = state;
         
         FilterStateHandler(state);
         
-        var stateMessage = new SessionStateChangeMessage();
-        stateMessage.ContentState = state;
-        
-        NetManager.ServerSendMessage(stateMessage, session.Channel);
+        SendState(session.Channel, state);
     }
 
-    public override ContentState GetCurrentState(ICommonSession session)
+    public override ContentState GetCurrentState(NetUserId id)
     {
-        return PlayerManager.GetContentPlayerData(session).CurrentState;
+        return ContentPlayerManager.GetContentPlayerData(id).CurrentState;
     }
 }
 
