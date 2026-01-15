@@ -8,6 +8,9 @@
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
         <PackageReference Include="YamlDotNet" />
     </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\Content.SourceGenerator\Content.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
 
     <Import Project="..\RobustToolbox\Imports\Lidgren.props" />
     <Import Project="..\RobustToolbox\Imports\Shared.props" />
