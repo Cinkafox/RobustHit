@@ -1,21 +1,21 @@
 ﻿using Content.Shared.States.Handlers;
 using Robust.Client.UserInterface.Controls;
 
-namespace Content.Client.States.UserInterfaces.Controls;
+namespace Content.Client.DataBindingUI.Controls;
 
 [Virtual]
-public class StateButton : ContainerButton
+public class ReactButton : Button
 {
-    public IStateMessageHandler Handler { get; set; } = default!;
+    public BindableData Handler { get; set; } = default!;
     
-    public StateButton()
+    public ReactButton()
     {
         OnPressed += OnButtonPressed;
     }
 
     private void OnButtonPressed(ButtonEventArgs obj)
     {
-        Handler.Invoke();
+        Handler.GetValue<IStateMessageHandler>().Invoke();
     }
 
     protected override void Dispose(bool disposing)

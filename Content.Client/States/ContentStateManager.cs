@@ -17,14 +17,28 @@ public sealed class ContentStateManager : ContentState.SharedContentStateManager
     [Dependency] private readonly IStateManager _stateManager = default!;
     [Dependency] private readonly IUserInterfaceManager _uiManager = default!;
     [Dependency] private readonly IPlayerManager _playerManager = default!;
+    [Dependency] private readonly IViewVariablesManager _viewVariablesManager = default!;
     
     private ContentState _currentState = new VoidGameState();
     private bool _firstActive = false;
 
     public override void Initialize(IDependencyCollection collection)
     {
+        _viewVariablesManager.RegisterDomain("state", ResolveStateObject, ListStatePaths);
+        
         NetManager.RegisterNetMessage<SessionStateChangeMessage>(OnSessionStateChange);
         NetManager.RegisterNetMessage<SessionHandlerInvokeMessage>();
+    }
+
+    private (ViewVariablesPath? Path, string[] Segments) ResolveStateObject(string path)
+    {
+        var segments = path.Split('/');
+        return (new ViewVariablesInstancePath(_currentState), segments);
+    }
+    
+    private IEnumerable<string>? ListStatePaths(string[] segments)
+    {
+        return null;
     }
 
     public override void SetState<T>(ICommonSession session)
@@ -89,7 +103,21 @@ public sealed class ContentStateManager : ContentState.SharedContentStateManager
         if (_uiManager.ActiveScreen is IStateUserInterface stateUserInterface)
         {
             stateUserInterface.CurrentState = _currentState;
-            stateUserInterface.OnStateChanged();
+        }
+        
+        UpdateStateRecursive(_uiManager.ActiveScreen!);
+    }
+
+    private void UpdateStateRecursive(Control control)
+    {
+        if (control is IStateChangedUserInterface stateChangedUserInterface)
+        {
+            stateChangedUserInterface.OnStateChanged();
+        }
+
+        foreach (var child in control.Children)
+        {
+            UpdateStateRecursive(child);
         }
     }
 
@@ -105,7 +133,11 @@ public sealed class ContentStateManager : ContentState.SharedContentStateManager
 public interface IStateUserInterface
 {
     public ContentState CurrentState { get; set; }
-    public virtual void OnStateChanged(){}
+}
+
+public interface IStateChangedUserInterface
+{
+    public void OnStateChanged();
 }
 
 public static class StateFactory

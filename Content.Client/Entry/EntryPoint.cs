@@ -18,7 +18,7 @@ public sealed class EntryPoint : GameClient
     [Dependency] private readonly IBaseClient _baseClient = default!;
     [Dependency] private readonly IConfigurationManager _configManager = default!;
     
-    public bool IsSingleplayer = false;
+    public bool IsSingleplayer = true;
     
     public override void PreInit()
     {

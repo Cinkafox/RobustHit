@@ -2,11 +2,10 @@
     xmlns="https://spacestation14.io"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:lobby="clr-namespace:Content.Client.Lobby"
-    xmlns:controls="clr-namespace:Content.Client.States.UserInterfaces.Controls">
+    xmlns:dataBindingUi="clr-namespace:Content.Client.DataBindingUI"
+    xmlns:controls="clr-namespace:Content.Client.DataBindingUI.Controls">
     <BoxContainer Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-        <Label Name="GoLabel" Text="GO GO!"/>
-        <controls:StateButton Name="StateButton">
-            <Label Text="EBASH"/>
-        </controls:StateButton>
+        <controls:ReactLabel Text="{dataBindingUi:ContextBinding 'state Message'}"/>
+        <controls:ReactButton Text="Hru!" Handler="{dataBindingUi:ContextBinding 'state SayHelloFunHandler'}"/>
     </BoxContainer>
 </lobby:LobbyUI>
